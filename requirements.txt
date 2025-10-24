@@ -1,0 +1,7 @@
+Flask
+redis
+python-dotenv
+gunicorn
+qdrant-client
+sentence-transformers
+tiktoken
