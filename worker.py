@@ -5,7 +5,8 @@ import time
 import traceback
 import sys
 from dotenv import load_dotenv
-
+import certifi
+import ssl
 load_dotenv()
 
 # ---------------- Config ----------------
@@ -23,7 +24,14 @@ if not REDIS_URL:
 
 try:
     import redis
-    r = redis.from_url(REDIS_URL, decode_responses=True)
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    r = redis.from_url(
+        REDIS_URL, 
+        decode_responses=True,
+        ssl_cert_reqs=ssl.CERT_REQUIRED, # Good practice
+        ssl_check_hostname=True,         # Good practice
+        ssl_context=ssl_context          # <-- Pass the certificate bundle
+    )
     r.ping()
     print("[worker] Redis connection successful.", flush=True)
 except Exception as e:
