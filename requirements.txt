@@ -5,3 +5,4 @@ gunicorn
 qdrant-client
 sentence-transformers
 tiktoken
+arxiv
