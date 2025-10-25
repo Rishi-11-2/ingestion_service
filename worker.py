@@ -26,11 +26,12 @@ try:
     import redis
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     r = redis.from_url(
-        REDIS_URL, 
+        REDIS_URL,
         decode_responses=True,
-        ssl_cert_reqs=ssl.CERT_REQUIRED, # Good practice
-        ssl_check_hostname=True,         # Good practice
-        ssl_context=ssl_context          # <-- Pass the certificate bundle
+        ssl=True,
+        ssl_cert_reqs=ssl.CERT_REQUIRED,
+        ssl_ca_certs=certifi.where(),   # <-- use this instead of ssl_context
+        ssl_check_hostname=True
     )
     r.ping()
     print("[worker] Redis connection successful.", flush=True)
