@@ -104,6 +104,31 @@ def _process_payload(payload: str, client, emb_gen, tokenizer):
 
     print(f"[worker] finished task {task_id} status={status}", flush=True)
 
+
+# --- Minimal HTTP listener so Render's port scanner finds an open port ---
+def _start_render_port_listener():
+    import threading, socketserver, http.server, os
+    class SilentHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+        def log_message(self, format, *args):
+            return  # silence logs
+
+    port = int(os.environ.get("PORT", os.environ.get("PORT0", "10000")))
+    try:
+        server = socketserver.TCPServer(("", port), SilentHandler)
+    except OSError as e:
+        print(f"[worker] Failed to bind HTTP listener on port {port}: {e}", flush=True)
+        return
+
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"[worker] HTTP listener running on 0.0.0.0:{port}", flush=True)
+
+
+
 def worker_loop(client, emb_gen, tokenizer):
     """
     Main worker loop.
@@ -125,7 +150,9 @@ def worker_loop(client, emb_gen, tokenizer):
             print(traceback.format_exc(), flush=True)
             time.sleep(1)
 
+
 if __name__ == "__main__":
+    _start_render_port_listener()
     print("[worker] Initializing clients (this may take a moment)...", flush=True)
     try:
         # Initialize clients ONCE at startup
