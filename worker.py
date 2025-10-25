@@ -5,12 +5,10 @@ import time
 import traceback
 import sys
 from dotenv import load_dotenv
-import certifi
-import ssl
 load_dotenv()
 
 # ---------------- Config ----------------
-REDIS_URL = os.getenv("REDIS_URL", None)
+REDIS_URL = os.getenv('REDIS_URL')
 QUEUE_KEY = os.getenv("QUEUE_KEY", "ingest:queue")
 PENDING_SET = os.getenv("PENDING_SET", "ingest:pending")
 PROCESSING_SET = os.getenv("PROCESSING_SET", "ingest:processing")
@@ -18,13 +16,14 @@ RESULT_LIST = os.getenv("RESULT_LIST", "ingest:results")
 MAX_RESULT_LOG = int(os.getenv("MAX_RESULT_LOG", "200"))
 BRPOP_TIMEOUT = int(os.getenv("BRPOP_TIMEOUT", "5"))
 
+
+print(REDIS_URL)
 # ---------- Redis client ----------
 if not REDIS_URL:
     raise RuntimeError("REDIS_URL environment variable must be set (e.g. redis://:PASS@host:6379/0).")
 
 try:
     import redis
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
     r = redis.from_url(
         REDIS_URL,
         decode_responses=True,
