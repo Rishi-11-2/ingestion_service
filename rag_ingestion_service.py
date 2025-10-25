@@ -76,27 +76,21 @@ QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
 QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "document_chunks")
 
 # --- Embedding Model Config ---
-EMBEDDING_MODEL_NAME = os.environ.get(
-    "EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2"
-)
-EMBEDDING_DEVICE = os.environ.get("EMBEDDING_DEVICE", "cpu")  # "cuda" if available
+EMBEDDING_MODEL_NAME = 'sentence-transformers/paraphrase-MiniLM-L3-v2'
+EMBEDDING_DEVICE = "cpu"  # "cuda" if available
 
 # --- Chunking / Token Config ---
-MAX_TOKENS = int(os.environ.get("MAX_TOKENS", 450))
-OVERLAP_TOKENS = int(os.environ.get("OVERLAP_TOKENS", 75))
-# Initial char-based chunker settings
-MIN_CHUNK_CHARS = int(os.environ.get("MIN_CHUNK_CHARS", 200))
-MAX_CHUNK_CHARS = int(os.environ.get("MAX_CHUNK_CHARS", 600))
-CHUNK_CHAR_OVERLAP = int(os.environ.get("CHUNK_CHAR_OVERLAP", 100))
-# Tokenizer name for tiktoken
-TOKENIZER_NAME = os.environ.get("TOKENIZER_NAME", "cl100k_base")
+MAX_TOKENS = 450
+OVERLAP_TOKENS = 75
+MIN_CHUNK_CHARS = 200
+MAX_CHUNK_CHARS = 600
+CHUNK_CHAR_OVERLAP = 100
+TOKENIZER_NAME = "cl100k_base"
 
-# --- Batching Config ---
-EMBED_BATCH_SIZE = int(os.environ.get("EMBED_BATCH_SIZE", 256))   # docs per embed batch
-QDRANT_UPSERT_BATCH = int(os.environ.get("QDRANT_UPSERT_BATCH", 256))  # points per upsert
+EMBED_BATCH_SIZE = 256
+QDRANT_UPSERT_BATCH = 256
 
-# --- Safety Config ---
-MAX_CHUNKS_PER_PDF = int(os.environ.get("MAX_CHUNKS_PER_PDF", 200_000))
+MAX_CHUNKS_PER_PDF = 200_000
 
 # -----------------------------------------------------------------
 
