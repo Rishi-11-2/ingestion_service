@@ -28,10 +28,6 @@ try:
     r = redis.from_url(
         REDIS_URL,
         decode_responses=True,
-        ssl=True,
-        ssl_cert_reqs=ssl.CERT_REQUIRED,
-        ssl_ca_certs=certifi.where(),   # <-- use this instead of ssl_context
-        ssl_check_hostname=True
     )
     r.ping()
     print("[worker] Redis connection successful.", flush=True)
