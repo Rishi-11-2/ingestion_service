@@ -9,15 +9,16 @@ load_dotenv()
 
 # ---------------- Config ----------------
 REDIS_URL = os.getenv('REDIS_URL')
-QUEUE_KEY = os.getenv("QUEUE_KEY", "ingest:queue")
-PENDING_SET = os.getenv("PENDING_SET", "ingest:pending")
-PROCESSING_SET = os.getenv("PROCESSING_SET", "ingest:processing")
-RESULT_LIST = os.getenv("RESULT_LIST", "ingest:results")
-MAX_RESULT_LOG = int(os.getenv("MAX_RESULT_LOG", "200"))
-BRPOP_TIMEOUT = int(os.getenv("BRPOP_TIMEOUT", "5"))
+QUEUE_KEY = "ingest:queue"
+PENDING_SET = "ingest:pending"
+PROCESSING_SET = "ingest:processing"
+RESULT_LIST = "ingest:results"
+MAX_RESULT_LOG = 200
+BRPOP_TIMEOUT = 5
 
+BATCH_MAX_ITEMS = 10
 
-print(REDIS_URL)
+# print(REDIS_URL)
 # ---------- Redis client ----------
 if not REDIS_URL:
     raise RuntimeError("REDIS_URL environment variable must be set (e.g. redis://:PASS@host:6379/0).")
@@ -33,6 +34,26 @@ try:
 except Exception as e:
     print(f"[worker] Failed to initialize Redis client: {e}", flush=True)
     sys.exit(1)
+
+def try_acquire_lock(lock_key="worker:lock", ttl=300):
+    """
+    Acquire a lock for this run. Returns True if lock acquired, False if another run holds it.
+    TTL should be >= expected max run time in seconds.
+    """
+    try:
+        # SETNX-like with expiry: set key only if not exist, with TTL seconds
+        # redis-py >=4 supports set(..., nx=True, ex=ttl)
+        ok = r.set(lock_key, "1", nx=True, ex=ttl)
+        return bool(ok)
+    except Exception as e:
+        print("[worker] lock acquire error:", e, flush=True)
+        return False
+
+def release_lock(lock_key="worker:lock"):
+    try:
+        r.delete(lock_key)
+    except Exception as e:
+        print("[worker] lock release error:", e, flush=True)
 
 # ---------- Ingestion clients & function ----------
 try:
@@ -105,33 +126,34 @@ def _process_payload(payload: str, client, emb_gen, tokenizer):
     print(f"[worker] finished task {task_id} status={status}", flush=True)
 
 
-# --- Minimal HTTP listener so Render's port scanner finds an open port ---
-def _start_render_port_listener():
-    import threading, socketserver, http.server, os
-    class SilentHandler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"OK")
-        def log_message(self, format, *args):
-            return  # silence logs
-
-    port = int(os.environ.get("PORT", os.environ.get("PORT0", "10000")))
-    try:
-        server = socketserver.TCPServer(("", port), SilentHandler)
-    except OSError as e:
-        print(f"[worker] Failed to bind HTTP listener on port {port}: {e}", flush=True)
-        return
-
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    print(f"[worker] HTTP listener running on 0.0.0.0:{port}", flush=True)
-
+def process_batch_once(client, emb_gen, tokenizer, max_items=100):
+    """
+    Non-blocking drain: process up to max_items from the queue and exit.
+    Uses r.rpop to match the same L/R semantics as BRPOP in the original loop.
+    """
+    print(f"[worker] drain mode: up to {max_items} items", flush=True)
+    processed = 0
+    while processed < max_items:
+        try:
+            payload = r.rpop(QUEUE_KEY)   # non-blocking pop; adjust to lpop if desired
+            if not payload:
+                break
+            _process_payload(payload, client, emb_gen, tokenizer)
+            processed += 1
+        except redis.exceptions.RedisError as re:
+            print("[worker] Redis error during drain:", re, flush=True)
+            print(traceback.format_exc(), flush=True)
+            time.sleep(1)
+        except Exception:
+            print("[worker] exception during drain loop:", flush=True)
+            print(traceback.format_exc(), flush=True)
+            time.sleep(1)
+    print(f"[worker] drain finished, processed {processed} items", flush=True)
 
 
 def worker_loop(client, emb_gen, tokenizer):
     """
-    Main worker loop.
+    Main worker loop (blocking BRPOP).
     """
     print("[worker] starting loop...", flush=True)
     while True:
@@ -152,7 +174,6 @@ def worker_loop(client, emb_gen, tokenizer):
 
 
 if __name__ == "__main__":
-    _start_render_port_listener()
     print("[worker] Initializing clients (this may take a moment)...", flush=True)
     try:
         # Initialize clients ONCE at startup
@@ -164,8 +185,6 @@ if __name__ == "__main__":
         print(traceback.format_exc(), flush=True)
         sys.exit(1)
 
-    print("[worker] Clients initialized. Starting worker process...", flush=True)
-    try:
-        worker_loop(client, emb_gen, tokenizer)
-    except KeyboardInterrupt:
-        print("[worker] Stopping loop gracefully (KeyboardInterrupt).", flush=True)
+    if try_acquire_lock(lock_key="worker:lock", ttl=300):
+            process_batch_once(client, emb_gen, tokenizer, max_items=BATCH_MAX_ITEMS)
+
