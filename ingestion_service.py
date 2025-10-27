@@ -51,6 +51,7 @@ def health():
 def enqueue():
     print("ENQUEUE")
     data = request.get_json(force=True, silent=True)
+    print(data)
     if not data or "query" not in data:
         return jsonify({"status": "error", "message": "JSON payload with 'query' required"}), 400
     query = data["query"]

@@ -102,7 +102,7 @@ def _process_payload(payload: str, client, emb_gen, tokenizer):
     status = "failed"
     try:
         # Call the efficient function, passing in the initialized clients
-        result_msg = search_and_run_pipeline(query, client, emb_gen, tokenizer)
+        result_msg = search_and_run_pipeline(query, client)
         print(f"[worker] ingestion returned: {str(result_msg)[:400]}", flush=True)
         status = "success"
     except Exception as e:
