@@ -27,8 +27,5 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
-          EMBEDDING_MODEL_NAME: ${{ secrets.EMBEDDING_MODEL_NAME }}
-          EMBEDDING_DEVICE: ${{ secrets.EMBEDDING_DEVICE }}
-          TOKENIZER_NAME: ${{ secrets.TOKENIZER_NAME }}
         run: |
           python worker.py

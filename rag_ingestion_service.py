@@ -68,12 +68,12 @@ load_dotenv()
 PAPER_DIR = "./papers"
 
 # --- Download Config ---
-DOWNLOAD_TIMEOUT = 30  # per-request timeout (seconds)
+DOWNLOAD_TIMEOUT = 0  # per-request timeout (seconds)
 
 # --- Qdrant Config (prefer environment overrides) ---
 QDRANT_URL = os.environ.get("QDRANT_URL")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
-QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "document_chunks")
+QDRANT_COLLECTION =  "document_chunks"
 
 # --- Embedding Model Config ---
 EMBEDDING_MODEL_NAME = 'sentence-transformers/paraphrase-MiniLM-L3-v2'
